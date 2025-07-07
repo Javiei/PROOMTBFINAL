@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { fetchBikes, updateBike, deleteBike } from '../server/db';
 import { getStatusDisplayName } from '../utils/helpers';
 
 export const AdminDashboard = () => {
@@ -19,11 +18,10 @@ export const AdminDashboard = () => {
   });
 
   useEffect(() => {
-    const loadBikes = async () => {
-      const data = await fetchBikes();
-      setBikes(data);
-    };
-    loadBikes();
+    fetch('/api/bikes')
+      .then(res => res.json())
+      .then(data => setBikes(data))
+      .catch(err => console.error('Error al obtener bicicletas:', err));
   }, []);
 
   const handleEditClick = (bike) => {
@@ -48,24 +46,34 @@ export const AdminDashboard = () => {
   };
 
   const handleSaveEdit = async () => {
-    if (editingBike) {
-      const updatedBike = { ...editingBike, ...formData };
-      const result = await updateBike(updatedBike);
-      setBikes(bikes.map(b => b.id === result.id ? result : b));
+    if (!editingBike) return;
+    try {
+      const response = await fetch(`/api/bikes/${editingBike.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...editingBike, ...formData }),
+      });
+      const updated = await response.json();
+      setBikes(bikes.map(b => (b.id === updated.id ? updated : b)));
       setEditingBike(null);
-      alert(`Bicicleta de ${result.clientName} actualizada.`);
+      alert('Bicicleta actualizada correctamente');
+    } catch (error) {
+      console.error('Error al actualizar bicicleta:', error);
+      alert('Error al actualizar la bicicleta');
     }
   };
 
   const handleDeleteBike = async (bikeId) => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar esta bicicleta? ¡No hay vuelta atrás!')) {
-      await deleteBike(bikeId);
-      setBikes(bikes.filter(bike => bike.id !== bikeId));
-      alert('Bicicleta eliminada con éxito.');
+    if (!window.confirm('¿Estás seguro de eliminar esta bicicleta?')) return;
+    try {
+      await fetch(`/api/bikes/${bikeId}`, { method: 'DELETE' });
+      setBikes(bikes.filter(b => b.id !== bikeId));
+    } catch (error) {
+      console.error('Error al eliminar bicicleta:', error);
+      alert('Error al eliminar bicicleta');
     }
   };
 
-  // Contadores por estado
   const statusCounts = bikes.reduce((acc, bike) => {
     acc[bike.status] = (acc[bike.status] || 0) + 1;
     return acc;
@@ -73,10 +81,10 @@ export const AdminDashboard = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
-      <h2 className="text-3xl font-bold text-gray-900 mb-8">Panel de Administrador</h2>
+      <h2 className="text-3xl font-bold mb-8">Panel de Administrador</h2>
 
       <div className="mb-8">
-        <h3 className="text-2xl font-bold text-gray-900 mb-4">Contadores por Estado</h3>
+        <h3 className="text-2xl font-bold mb-4">Contadores por Estado</h3>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {Object.entries(statusCounts).map(([status, count]) => (
             <div key={status} className="bg-white p-4 rounded-xl shadow-md text-center">
@@ -87,33 +95,33 @@ export const AdminDashboard = () => {
         </div>
       </div>
 
-      <h3 className="text-2xl font-bold text-gray-900 mb-6">Todas las Bicicletas</h3>
+      <h3 className="text-2xl font-bold mb-6">Todas las Bicicletas</h3>
       {bikes.length === 0 ? (
-        <p className="text-gray-600 text-lg">No hay bicicletas registradas.</p>
+        <p>No hay bicicletas registradas.</p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {bikes.map(bike => (
-            <div key={bike.id} className="bg-white p-6 rounded-2xl shadow-lg border border-gray-200 flex flex-col justify-between">
+            <div key={bike.id} className="bg-white p-6 rounded-2xl shadow-lg border flex flex-col justify-between">
               <div>
-                <div className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mb-3 ${getStatusDisplayName(bike.status).toLowerCase().replace(/\s/g, '-')}`}>
+                <div className="inline-block px-3 py-1 mb-3 rounded-full bg-gray-200 text-sm">
                   {getStatusDisplayName(bike.status)}
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">{bike.clientName} {bike.clientLastName}</h3>
-                <p className="text-gray-600 text-sm mb-2">Modelo: {bike.bikeModel} / Marca: {bike.bikeBrand}</p>
-                <p className="text-gray-600 text-sm mb-4">Problema Inicial: {bike.description}</p>
-                {bike.problem && <p className="text-gray-800 text-sm font-medium mb-4">Diagnóstico: {bike.problem}</p>}
-                {bike.entryDate && <p className="text-gray-500 text-xs">Fecha de Entrada: {bike.entryDate}</p>}
+                <h3 className="text-xl font-semibold">{bike.clientName} {bike.clientLastName}</h3>
+                <p className="text-sm">Modelo: {bike.bikeModel} / Marca: {bike.bikeBrand}</p>
+                <p className="text-sm mb-2">Problema: {bike.description}</p>
+                {bike.problem && <p className="text-sm font-medium">Diagnóstico: {bike.problem}</p>}
+                {bike.entryDate && <p className="text-xs text-gray-500">Entrada: {bike.entryDate}</p>}
               </div>
               <div className="flex flex-col space-y-2 mt-4">
                 <button
                   onClick={() => handleEditClick(bike)}
-                  className="w-full bg-proomtb-dark text-white py-2 rounded-xl hover:bg-proomtb-light transition duration-200 text-md font-medium shadow-md"
+                  className="w-full bg-black text-white py-2 rounded-xl hover:bg-gray-800"
                 >
                   Editar
                 </button>
                 <button
                   onClick={() => handleDeleteBike(bike.id)}
-                  className="w-full bg-red-600 text-white py-2 rounded-xl hover:bg-red-700 transition duration-200 text-md font-medium shadow-md"
+                  className="w-full bg-red-600 text-white py-2 rounded-xl hover:bg-red-700"
                 >
                   Eliminar
                 </button>
@@ -124,86 +132,46 @@ export const AdminDashboard = () => {
       )}
 
       {editingBike && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-lg">
-            <h3 className="text-2xl font-bold text-gray-900 mb-6">Editar Bicicleta</h3>
-            <input
-              type="text"
-              name="clientName"
-              placeholder="Nombre del Cliente"
-              className="w-full px-5 py-3 mb-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-proomtb-dark transition duration-200"
-              value={formData.clientName}
-              onChange={handleInputChange}
-            />
-            <input
-              type="text"
-              name="clientLastName"
-              placeholder="Apellido del Cliente"
-              className="w-full px-5 py-3 mb-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-proomtb-dark transition duration-200"
-              value={formData.clientLastName}
-              onChange={handleInputChange}
-            />
-            <input
-              type="text"
-              name="phoneNumber"
-              placeholder="Número de Teléfono"
-              className="w-full px-5 py-3 mb-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-proomtb-dark transition duration-200"
-              value={formData.phoneNumber}
-              onChange={handleInputChange}
-            />
-            <input
-              type="email"
-              name="email"
-              placeholder="Correo Electrónico"
-              className="w-full px-5 py-3 mb-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-proomtb-dark transition duration-200"
-              value={formData.email}
-              onChange={handleInputChange}
-            />
-            <input
-              type="text"
-              name="address"
-              placeholder="Dirección"
-              className="w-full px-5 py-3 mb-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-proomtb-dark transition duration-200"
-              value={formData.address}
-              onChange={handleInputChange}
-            />
-            <input
-              type="text"
-              name="bikeModel"
-              placeholder="Modelo de Bicicleta"
-              className="w-full px-5 py-3 mb-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-proomtb-dark transition duration-200"
-              value={formData.bikeModel}
-              onChange={handleInputChange}
-            />
-            <input
-              type="text"
-              name="bikeBrand"
-              placeholder="Marca de Bicicleta"
-              className="w-full px-5 py-3 mb-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-proomtb-dark transition duration-200"
-              value={formData.bikeBrand}
-              onChange={handleInputChange}
-            />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-8 rounded-xl w-full max-w-lg">
+            <h3 className="text-2xl font-bold mb-6">Editar Bicicleta</h3>
+            {[
+              ['clientName', 'Nombre del Cliente'],
+              ['clientLastName', 'Apellido del Cliente'],
+              ['phoneNumber', 'Teléfono'],
+              ['email', 'Correo'],
+              ['address', 'Dirección'],
+              ['bikeModel', 'Modelo'],
+              ['bikeBrand', 'Marca'],
+            ].map(([name, placeholder]) => (
+              <input
+                key={name}
+                name={name}
+                placeholder={placeholder}
+                value={formData[name]}
+                onChange={handleInputChange}
+                className="w-full px-5 py-3 mb-4 border border-gray-300 rounded-xl"
+              />
+            ))}
             <textarea
               name="description"
-              placeholder="Descripción del Problema Inicial"
-              rows="4"
-              className="w-full px-5 py-3 mb-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-proomtb-dark transition duration-200 resize-none"
+              placeholder="Descripción del Problema"
               value={formData.description}
               onChange={handleInputChange}
-            ></textarea>
+              className="w-full px-5 py-3 mb-4 border border-gray-300 rounded-xl"
+            />
             <textarea
               name="problem"
               placeholder="Diagnóstico del Mecánico"
-              rows="4"
-              className="w-full px-5 py-3 mb-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-proomtb-dark transition duration-200 resize-none"
               value={formData.problem}
               onChange={handleInputChange}
-            ></textarea>
+              className="w-full px-5 py-3 mb-4 border border-gray-300 rounded-xl"
+            />
             <select
               name="status"
-              className="w-full px-5 py-3 mb-6 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-proomtb-dark transition duration-200"
               value={formData.status}
               onChange={handleInputChange}
+              className="w-full px-5 py-3 mb-6 border border-gray-300 rounded-xl"
             >
               <option value="">Seleccionar Estado</option>
               <option value="chofer">En Chofer</option>
@@ -215,16 +183,16 @@ export const AdminDashboard = () => {
               <option value="listo_chofer">Listo para Chofer</option>
               <option value="listo_tienda">Listo para Tienda</option>
             </select>
-            <div className="flex justify-end space-x-4">
+            <div className="flex justify-end gap-4">
               <button
                 onClick={() => setEditingBike(null)}
-                className="px-6 py-3 bg-gray-300 text-gray-800 rounded-xl hover:bg-gray-400 transition duration-200 font-semibold"
+                className="bg-gray-300 px-6 py-3 rounded-xl"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSaveEdit}
-                className="px-6 py-3 bg-proomtb-dark text-white rounded-xl hover:bg-proomtb-light transition duration-200 font-semibold"
+                className="bg-black text-white px-6 py-3 rounded-xl"
               >
                 Guardar Cambios
               </button>
