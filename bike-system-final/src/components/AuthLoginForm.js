@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 
 const AuthLoginForm = ({ onLogin }) => {
-  const [userId, setUserId] = useState('');
+  const [username, setUsername] = useState('');   // ← username
   const [password, setPassword] = useState('');
 
   const handleSubmit = async (e) => {
@@ -10,12 +10,12 @@ const AuthLoginForm = ({ onLogin }) => {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, password }),
+      body: JSON.stringify({ username, password }), // ← username
     });
 
     if (res.ok) {
       const user = await res.json();
-      onLogin(user);
+      onLogin?.(user);
     } else {
       alert('Credenciales incorrectas');
     }
@@ -27,8 +27,8 @@ const AuthLoginForm = ({ onLogin }) => {
       <input
         type="text"
         placeholder="Usuario"
-        value={userId}
-        onChange={(e) => setUserId(e.target.value)}
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
         className="w-full mb-2 p-2 border"
       />
       <input
@@ -43,4 +43,4 @@ const AuthLoginForm = ({ onLogin }) => {
   );
 };
 
-export { AuthLoginForm };
+export default AuthLoginForm;
