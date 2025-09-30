@@ -1,3 +1,4 @@
+// backend/routes/bikeRoutes.js
 import express from 'express';
 import db from '../db.js';
 
@@ -9,18 +10,17 @@ const toDate = (v) => {
   return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
 };
 
-// --- HEALTH DB ---
+// Health DB
 router.get('/health/db', async (_req, res) => {
   try {
     const [[row]] = await db.query('SELECT 1 AS ok');
-    return res.json({ ok: row?.ok === 1 });
+    res.json({ ok: row?.ok === 1 });
   } catch (e) {
-    console.error('[HEALTH DB] Error:', { code: e?.code, msg: e?.sqlMessage });
-    return res.status(500).json({ error: 'DB error', code: e?.code, msg: e?.sqlMessage });
+    res.status(500).json({ error: 'DB error', code: e?.code, msg: e?.sqlMessage });
   }
 });
 
-// GET /api/bikes/tienda (tolerante a status|estado, entryDate|created_at)
+// GET /api/bikes/tienda
 router.get('/tienda', async (_req, res) => {
   try {
     const [rows] = await db.query(
@@ -29,19 +29,20 @@ router.get('/tienda', async (_req, res) => {
          bikeModel, bikeBrand, description, problem, assignedTo,
          COALESCE(status, estado) AS status,
          COALESCE(entryDate, created_at) AS entryDate,
-         comentario, numeroFactura
+         comentario,
+         COALESCE(numeroFactura, nro_factura) AS numeroFactura
        FROM bikes
        WHERE COALESCE(status, estado) IN ('listo_tienda','tienda','terminado')
        ORDER BY COALESCE(entryDate, created_at) DESC, id DESC`
     );
     res.json(rows || []);
   } catch (e) {
-    console.error('[TIENDA LIST] Error:', { code: e?.code, msg: e?.sqlMessage, stack: e?.stack });
-    res.status(500).json({ error: 'Error de servidor', code: e?.code, msg: e?.sqlMessage });
+    console.error('[TIENDA LIST] Error:', { code: e?.code, msg: e?.sqlMessage });
+    res.status(500).json({ error: 'Error de servidor' });
   }
 });
 
-// GET /api/bikes/tienda/stats (tolerante a status|estado)
+// GET /api/bikes/tienda/stats
 router.get('/tienda/stats', async (_req, res) => {
   try {
     const [rows] = await db.query(
@@ -53,8 +54,8 @@ router.get('/tienda/stats', async (_req, res) => {
     );
     res.json(rows || []);
   } catch (e) {
-    console.error('[TIENDA STATS] Error:', { code: e?.code, msg: e?.sqlMessage, stack: e?.stack });
-    res.status(500).json({ error: 'Error de servidor', code: e?.code, msg: e?.sqlMessage });
+    console.error('[TIENDA STATS] Error:', { code: e?.code, msg: e?.sqlMessage });
+    res.status(500).json({ error: 'Error de servidor' });
   }
 });
 
@@ -65,14 +66,15 @@ router.get('/:id', async (req, res) => {
     if (!rows?.length) return res.status(404).json({ error: 'No encontrado' });
     res.json(rows[0]);
   } catch (e) {
-    console.error('[BIKE GET] Error:', { code: e?.code, msg: e?.sqlMessage, stack: e?.stack });
-    res.status(500).json({ error: 'Error de servidor', code: e?.code, msg: e?.sqlMessage });
+    console.error('[BIKE GET] Error:', e);
+    res.status(500).json({ error: 'Error de servidor' });
   }
 });
 
-// PUT /api/bikes/:id  (mantén el tuyo si ya lo tienes; este deja logs mejores)
+// PUT /api/bikes/:id
 router.put('/:id', async (req, res) => {
   const id = req.params.id;
+
   const {
     clientName, clientLastName, phoneNumber, email, address,
     bikeModel, bikeBrand, description, problem, assignedTo,
@@ -87,7 +89,6 @@ router.put('/:id', async (req, res) => {
     status, clientId, comentario, numeroFactura
   };
 
-  // Construye SET dinámico
   const setParts = [];
   const values = [];
   for (const [k, v] of Object.entries(fields)) {
@@ -108,9 +109,8 @@ router.put('/:id', async (req, res) => {
     await db.query(`UPDATE bikes SET ${setParts.join(', ')} WHERE id = ?`, values);
     return res.json({ ok: true });
   } catch (e) {
-    console.error('[BIKE UPDATE] Error:', { code: e?.code, msg: e?.sqlMessage, stack: e?.stack });
-    // Respuesta con detalle para que el frontend lo vea durante la migración
-    return res.status(500).json({ error: 'Error de servidor', code: e?.code, msg: e?.sqlMessage });
+    console.error('❌ Error al actualizar bicicleta:', e);
+    return res.status(500).json({ error: 'Error de servidor' });
   }
 });
 
