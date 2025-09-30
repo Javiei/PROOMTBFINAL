@@ -1,4 +1,4 @@
-// db.js (mysql2/promise)
+// backend/db.js
 import { createPool } from 'mysql2/promise';
 
 const pool = createPool({
@@ -9,9 +9,7 @@ const pool = createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
-  // opcional: evita timeouts
   connectTimeout: 20000,
 });
 
 export default pool;
-
