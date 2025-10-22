@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { AuthLoginForm } from './components/AuthLoginForm';
+import { AuthLoginForm } from './components/AuthLoginForm'
 import { LayoutHeader } from './components/LayoutHeader';
-import { ChoferDashboard } from './components/ChoferDashboard';
-import { TiendaDashboard } from './components/TiendaDashboard';
-import { LavadorDashboard } from './components/LavadorDashboard';
-import { MecanicoDashboard } from './components/MecanicoDashboard';
-import { AdminDashboard } from './components/AdminDashboard';
+import  ChoferDashboard  from './components/ChoferDashboard';
+import  TiendaDashboard  from './components/TiendaDashboard';
+import  LavadorDashboard  from './components/LavadorDashboard';
+import  MecanicoDashboard  from './components/MecanicoDashboard';
+import  AdminDashboard  from './components/AdminDashboard';
 
 function App() {
   const [user, setUser] = useState(null);

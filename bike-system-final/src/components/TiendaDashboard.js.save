@@ -1,0 +1,85 @@
+  const defaultForm = {
+    clientName: "",
+    clientLastName: "",
+    phoneNumber: "",
+    email: "",
+    bikeModel: "",
+    bikeBrand: "",
+    description: "",
+    problem: "",
+  };
+  const [formData, setFormData] = useState(defaultForm);
+    setLoadError("");
+    try {
+      const [s, b] = await Promise.all([
+        fetchJSON("/api/bikes/tienda/stats"),
+        fetchJSON("/api/bikes/tienda"),
+      ]);
+      setStats(Array.isArray(s) ? s : []);
+      setBikes(bikesNorm);
+      setClients(deriveClientsFromBikes(bikesNorm));
+    } catch (e) {
+      console.error("Error al obtener datos:", e);
+    } finally {
+      setLoading(false);
+    }
+  useEffect(() => { load(); }, [load]);
+
+  const counts = useMemo(() => {
+    const m = Object.fromEntries(stats.map(s => [s.status, s.count]));
+
+
+
+
+        <div className="mb-4 p-3 rounded-lg bg-red-100 text-red-700 border border-red-300">
+          {loadError}
+        </div>
+      )}
+
+      {/* REGISTRO */}
+      <div className="mb-8 p-6 rounded-xl border shadow-md bg-gray-50 border-gray-200">
+        <h3 className="text-2xl font-bold mb-4 text-gray-900">Registrar Entrada (Tienda)</h3>
+        {/* resto igual que tu versión */}
+        {/* ... */}
+      </div>
+
+      {/* CONTADORES */}
+      <div className="mb-8">
+        <h3 className="text-2xl font-bold mb-4 text-gray-900">Contadores por Estado</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
+          {STATUS_FOR_TIENDA.map((s) => (
+            <button
+              key={s}
+              onClick={() => openStatusModal(s)}
+              className="p-4 rounded-xl shadow-sm text-center bg-gray-100 border border-gray-200 hover:bg-gray-200"
+              type="button"
+            >
+              <p className="text-gray-600 text-sm font-medium">
+                {getStatusDisplayName(s)}
+              </p>
+              <p className="text-3xl font-bold text-gray-900">
+                {s === "listo_tienda" ? counts.listo_tienda
+                  : s === "tienda" ? counts.tienda
+                  : counts.terminado}
+              </p>
+            </button>
+          ))}
+          <div className="p-4 rounded-xl shadow-sm text-center bg-gray-100 border border-gray-200">
+            <p className="text-gray-600 text-sm font-medium">Total</p>
+            <p className="text-3xl font-bold text-gray-900">{counts.total}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* FACTURAS */}
+      <div className="hidden">
+        <div ref={entradaRef} className="print-area" style={{ background: "#fff" }}>
+          {facturaEntradaData && <FacturaEntrada bike={facturaEntradaData} />}
+        </div>
+        <div ref={salidaRef} className="print-area" style={{ background: "#fff" }}>
+          {facturaSalidaData && <Factura bike={facturaSalidaData} />}
+        </div>
+      </div>
+    </div>
+  );
+}

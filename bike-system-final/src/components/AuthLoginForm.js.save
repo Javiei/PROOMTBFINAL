@@ -1,0 +1,106 @@
+// src/components/AuthLoginForm.js
+import React, { useState } from "react";
+
+export default function AuthLoginForm() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (!res.ok) {
+        alert("Credenciales incorrectas");
+        setLoading(false);
+        return;
+      }
+
+      const user = await res.json();
+
+      // ✅ Guarda la sesión en localStorage
+      localStorage.setItem("user", JSON.stringify(user));
+
+      // ✅ Redirige según el rol
+      switch (user.role) {
+        case "admin":
+          window.location.href = "/admin";
+          break;
+        case "mecanico":
+          window.location.href = "/mecanico";
+          break;
+        case "tienda":
+          window.location.href = "/tienda";
+          break;
+        case "chofer":
+          window.location.href = "/chofer";
+          break;
+        case "lavador":
+          window.location.href = "/lavador";
+          break;
+        default:
+          window.location.href = "/";
+          break;
+      }
+    } catch (err) {
+      console.error("Error al iniciar sesión:", err);
+      alert("Error de conexión con el servidor");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white shadow-lg rounded-xl p-8 w-full max-w-sm"
+      >
+        <h2 className="text-2xl font-bold mb-6 text-center text-gray-900">
+          Iniciar sesión
+        </h2>
+
+        <label className="block text-sm font-medium mb-1 text-gray-700">
+          Usuario
+        </label>
+        <input
+          className="w-full border rounded-lg px-3 py-2 mb-4 focus:outline-none focus:ring-2 focus:ring-black/30"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="usuario"
+          autoComplete="username"
+          required
+        />
+
+        <label className="block text-sm font-medium mb-1 text-gray-700">
+          Contraseña
+        </label>
+        <input
+          type="password"
+          className="w-full border rounded-lg px-3 py-2 mb-6 focus:outline-none focus:ring-2 focus:ring-black/30"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="••••••••"
+          autoComplete="current-password"
+          required
+        />
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-black text-white rounded-lg py-2 font-semibold hover:bg-gray-800 transition"
+        >
+          {loading ? "Entrando..." : "Entrar"}
+        </button>
+      </form>
+    </div>
+  );
+}

@@ -1,25 +1,25 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
-import db from './db.js';
+import helmet from 'helmet';
+
 import authRoutes from './routes/authRoutes.js';
 import bikeRoutes from './routes/bikeRoutes.js';
 
-dotenv.config();
-
 const app = express();
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+app.use(helmet());
 
-app.use((req, _res, next) => { console.log('REQ', req.method, req.url); next(); });
+// health
+app.get('/api/health/db', (_req, res) => res.json({ ok: true }));
 
-app.get('/api/health', (_req, res) => res.json({ ok: true }));
-
+// rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/bikes', bikeRoutes);
 
-// 404 solo para /api
-app.use(/^\/api\//, (_req, res) => res.status(404).json({ error: 'Not found' }));
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, '127.0.0.1', () => {
+  console.log(`[BOOT] Backend listening on http://127.0.0.1:${PORT}`);
+});
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Servidor corriendo en puerto ${PORT}`));
+export default app;
